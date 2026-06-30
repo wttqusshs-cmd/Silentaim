@@ -1,0 +1,953 @@
+-- ============================================================
+-- LOADING SCREEN - Full screen with black background and green bar
+-- ============================================================
+
+local player = game:GetService("Players").LocalPlayer
+
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "LoadingScreen"
+loadingGui.ResetOnSpawn = false
+loadingGui.IgnoreGuiInset = true
+loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+loadingGui.Parent = player:WaitForChild("PlayerGui")
+
+local blackBg = Instance.new("Frame")
+blackBg.Size = UDim2.new(1, 0, 1, 0)
+blackBg.Position = UDim2.new(0, 0, 0, 0)
+blackBg.BackgroundColor3 = Color3.new(0, 0, 0)
+blackBg.BackgroundTransparency = 0
+blackBg.BorderSizePixel = 0
+blackBg.ZIndex = 999
+blackBg.Parent = loadingGui
+
+local barContainer = Instance.new("Frame")
+barContainer.Size = UDim2.new(0.8, 0, 0.06, 0)
+barContainer.Position = UDim2.new(0.1, 0, 0.45, 0)
+barContainer.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+barContainer.BorderSizePixel = 1
+barContainer.BorderColor3 = Color3.new(0.3, 0.3, 0.3)
+barContainer.ZIndex = 1000
+barContainer.Parent = blackBg
+
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0, 0, 1, 0)
+bar.BackgroundColor3 = Color3.new(0, 1, 0)
+bar.BorderSizePixel = 0
+bar.ZIndex = 1001
+bar.Parent = barContainer
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 0.15, 0)
+label.Position = UDim2.new(0, 0, 0.7, 0)
+label.BackgroundTransparency = 1
+label.Text = "Loading..."
+label.TextColor3 = Color3.new(1, 1, 1)
+label.TextScaled = true
+label.Font = Enum.Font.GothamBold
+label.ZIndex = 1000
+label.Parent = blackBg
+
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://8085682269"
+sound.Volume = 10
+sound.Parent = loadingGui
+
+task.spawn(function()
+    task.wait(0.1)
+    pcall(function()
+        sound:Play()
+    end)
+end)
+
+local TweenService = game:GetService("TweenService")
+local tween = TweenService:Create(bar, TweenInfo.new(10, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)})
+tween:Play()
+tween.Completed:Wait()
+
+loadingGui:Destroy()
+
+-- ============================================================
+-- MAIN SCRIPT (Anti-Kick, Cleaner Cacher, Adonis Bypass, UI)
+-- ============================================================
+
+repeat wait() until game:IsLoaded()
+
+for _, v in pairs(getconnections(game:GetService("ScriptContext").Error)) do
+    v:Disable()
+end
+
+for _, v in pairs(getconnections(game:GetService("LogService").MessageOut)) do
+    v:Disable()
+end
+
+pcall(function()
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua'))()
+    
+    local getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller = 
+        getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller
+    
+    if getgenv().ED_AntiKick then
+        return
+    end
+
+    local cloneref = cloneref or function(...) return ... end
+    local clonefunction = clonefunction or function(...) return ... end
+
+    local Players, LocalPlayer, StarterGui = 
+        cloneref(game:GetService("Players")), 
+        cloneref(game:GetService("Players").LocalPlayer), 
+        cloneref(game:GetService("StarterGui"))
+
+    local SetCore = clonefunction(StarterGui.SetCore)
+    local FindFirstChild = clonefunction(game.FindFirstChild)
+
+    local CompareInstances = (CompareInstances and function(Instance1, Instance2)
+        if typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance" then
+            return CompareInstances(Instance1, Instance2)
+        end
+    end) or function(Instance1, Instance2)
+        return (typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance")
+    end
+
+    local CanCastToSTDString = function(...)
+        return pcall(FindFirstChild, game, ...)
+    end
+
+    getgenv().ED_AntiKick = {
+        Enabled = true, 
+        SendNotifications = false,
+        CheckCaller = true
+    }
+
+    pcall(function()
+        local OldNamecall
+        OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+            local self, message = ...
+            local method = getnamecallmethod()
+            local isCallerValid = true
+            if ED_AntiKick.CheckCaller then
+                local success, result = pcall(checkcaller)
+                isCallerValid = success and result or true
+            end
+            
+            if (isCallerValid or not ED_AntiKick.CheckCaller) and 
+               CompareInstances(self, LocalPlayer) and 
+               string.gsub(method, "^%l", string.upper) == "Kick" and 
+               ED_AntiKick.Enabled then
+                if CanCastToSTDString(message) then
+                    if ED_AntiKick.SendNotifications then
+                        SetCore(StarterGui, "SendNotification", {
+                            Title = "created by gordin.cc",
+                            Text = "Successfully blocked an attempted kick.",
+                            Icon = "rbxassetid://4483362458",
+                            Duration = 1
+                        })
+                    end
+                    return
+                end
+            end
+            return OldNamecall(...)
+        end))
+    end)
+
+    pcall(function()
+        local OldFunction
+        OldFunction = hookfunction(LocalPlayer.Kick, function(...)
+            local self, Message = ...
+            local isCallerValid = true
+            if ED_AntiKick.CheckCaller then
+                local success, result = pcall(checkcaller)
+                isCallerValid = success and result or true
+            end
+            
+            if (isCallerValid or not ED_AntiKick.CheckCaller) and 
+               CompareInstances(self, LocalPlayer) and 
+               ED_AntiKick.Enabled then
+                if CanCastToSTDString(Message) then
+                    if ED_AntiKick.SendNotifications then
+                        SetCore(StarterGui, "SendNotification", {
+                            Title = "created by gordin.cc",
+                            Text = "Successfully blocked an attempted kick.",
+                            Icon = "rbxassetid://4483362458",
+                            Duration = 1
+                        })
+                    end
+                    return
+                end
+            end
+            return OldFunction(...)
+        end)
+    end)
+end)
+
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+Library.ForceCheckbox = false
+Library.ShowToggleFrameInKeybinds = true
+
+local Window = Library:CreateWindow({
+    Title = "Nightfall",
+    Footer = "",
+    Icon = 95816097006870,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
+})
+
+local Tabs = {
+    Combat = Window:AddTab("Combat", "sword"),
+    Discord = Window:AddTab("Discord", "message-circle"),
+    ["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+local plrs = Players
+local plr = player
+
+local ValidTargetParts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightHand", "LeftHand", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot"}
+
+local config = {
+    SA2_Enabled = false,
+    SA2_Method = "Raycast",
+    SA2_TeamTarget = "Enemies",
+    SA2_Wallcheck = false,
+    SA2_TargetPart = "Head",
+    SA2_HitChance = 100,
+    SA2_FovRadius = 120,
+    SA2_FovVisible = true,
+    SA2_FovTransparency = 0.90,
+    SA2_FovColor = Color3.new(0, 0, 0),
+    SA2_FovColourTarget = Color3.new(1, 1, 0),
+    SA2_FovIsTargeted = false,
+    SA2_ThreeSixtyMode = false,
+    SA2_GetTarget = "Closest",
+    SA2_currentTarget = nil,
+    SA2_TArea = 35,
+    SA2_TargetRange = 1000,
+    SA2_WallbangEnabled = false,
+    masterGetTarget = "Closest",
+    masterTeamTarget = "Enemies",
+    varibz = {
+        sa2thing = 0,
+        sa2stuff = 0.03,
+        respawnLock = false,
+    }
+}
+
+local cachedTarget = nil
+local updateESPColors = function() end
+
+local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
+
+local function GetRandomTargetPart()
+    return ValidTargetParts[math.random(1, #ValidTargetParts)]
+end
+
+local function GetActualTargetPart()
+    if config.SA2_TargetPart == "Random" then
+        return GetRandomTargetPart()
+    end
+    return config.SA2_TargetPart
+end
+
+local function ArePlayersSameTeam(player1, player2)
+    if not player1 or not player2 then return false end
+    local team1 = player1.Team
+    local team2 = player2.Team
+    if not team1 or not team2 then return false end
+    return team1 == team2
+end
+
+local function ShouldTargetPlayer(targetPlayer)
+    if targetPlayer == plr then return false end
+    if config.SA2_TeamTarget == "All" then
+        return true
+    elseif config.SA2_TeamTarget == "Enemies" then
+        return not ArePlayersSameTeam(plr, targetPlayer)
+    elseif config.SA2_TeamTarget == "Teams" then
+        return ArePlayersSameTeam(plr, targetPlayer)
+    end
+    return false
+end
+
+local function IsPlayerVisible(Player)
+    local PlayerCharacter = Player.Character
+    local LocalPlayerCharacter = plr.Character
+    if not (PlayerCharacter or LocalPlayerCharacter) then return end
+    local actualTargetPart = GetActualTargetPart()
+    local PlayerRoot = PlayerCharacter:FindFirstChild(actualTargetPart) or PlayerCharacter:FindFirstChild("HumanoidRootPart")
+    if not PlayerRoot then return end
+    local CastPoints = {PlayerRoot.Position}
+    local IgnoreList = {LocalPlayerCharacter, PlayerCharacter}
+    local ObscuringObjects = #Camera:GetPartsObscuringTarget(CastPoints, IgnoreList)
+    return ObscuringObjects == 0
+end
+
+local function calc_chance(chance)
+    if chance == 100 then return true
+    elseif chance <= 0 then return false
+    else return math.random(1, 100) <= chance end
+end
+
+local function GetClosestPlayer()
+    if config.varibz.respawnLock or not plr.Character then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
+    
+    local Closest = nil
+    local ShortestDistance = math.huge
+    local LowestHealth = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local allTargets = {}
+    local cameraPos = Camera.CFrame.Position
+    local maxTargetRange = config.SA2_TargetRange or 1000
+    
+    for _, Player in next, plrs:GetPlayers() do
+        if Player == plr then continue end
+        if not ShouldTargetPlayer(Player) then continue end
+        
+        local Character = Player.Character
+        if not Character then continue end
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if not Humanoid or Humanoid.Health <= 0 then continue end
+
+        if config.SA2_Wallcheck and not IsPlayerVisible(Player) then continue end
+        
+        local bodyPartsToCheck = {"HumanoidRootPart", "Head", "Torso", "UpperTorso"}
+        local foundPart = nil
+        
+        for _, partName in ipairs(bodyPartsToCheck) do
+            local bodyPart = Character:FindFirstChild(partName)
+            if bodyPart then
+                foundPart = bodyPart
+                break
+            end
+        end
+        
+        if not foundPart then continue end
+        
+        local targetPos = foundPart.Position
+        local worldDist = (cameraPos - targetPos).Magnitude
+        if worldDist > maxTargetRange then continue end
+        
+        if config.SA2_ThreeSixtyMode then
+            table.insert(allTargets, {
+                player = Player,
+                character = Character,
+                part = foundPart,
+                humanoid = Humanoid,
+                health = Humanoid.Health,
+                worldDist = worldDist,
+                in360Mode = true
+            })
+        else
+            local screenPos, onScreen = func.GetScreenPosition(targetPos)
+            if not onScreen then continue end
+            screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
+            
+            local distToFov = (screenCenter - screenPos).Magnitude
+            if distToFov > config.SA2_FovRadius then continue end
+            
+            table.insert(allTargets, {
+                player = Player,
+                character = Character,
+                part = foundPart,
+                humanoid = Humanoid,
+                health = Humanoid.Health,
+                screenPos = screenPos,
+                onScreen = onScreen,
+                distanceToCenter = distToFov,
+                worldDist = worldDist,
+                in360Mode = false
+            })
+        end
+    end
+    
+    if #allTargets == 0 then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
+    
+    local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
+    local newClosestPlayer = nil
+    
+    if config.SA2_ThreeSixtyMode then
+        if getTargetMethod == "Lowest Health" then
+            local bestTarget = nil
+            local bestHealth = math.huge
+            for _, target in ipairs(allTargets) do
+                if target.health < bestHealth then
+                    bestHealth = target.health
+                    bestTarget = target
+                end
+            end
+            if bestTarget then
+                local actualTargetPart = GetActualTargetPart()
+                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
+                newClosestPlayer = bestTarget.player
+            end
+        else
+            local bestTarget = nil
+            local bestDist = math.huge
+            for _, target in ipairs(allTargets) do
+                if target.worldDist < bestDist then
+                    bestDist = target.worldDist
+                    bestTarget = target
+                end
+            end
+            if bestTarget then
+                local actualTargetPart = GetActualTargetPart()
+                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
+                newClosestPlayer = bestTarget.player
+            end
+        end
+    else
+        if getTargetMethod == "Lowest Health" then
+            for _, target in ipairs(allTargets) do
+                if target.onScreen and target.health < LowestHealth then
+                    LowestHealth = target.health
+                    local actualTargetPart = GetActualTargetPart()
+                    Closest = target.character[actualTargetPart] or target.part
+                    newClosestPlayer = target.player
+                end
+            end
+        else
+            for _, target in ipairs(allTargets) do
+                if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
+                    local actualTargetPart = GetActualTargetPart()
+                    Closest = target.character[actualTargetPart] or target.part
+                    ShortestDistance = target.distanceToCenter
+                    newClosestPlayer = target.player
+                end
+            end
+        end
+    end
+    
+    if newClosestPlayer ~= config.SA2_currentTarget then
+        config.SA2_currentTarget = newClosestPlayer
+        updateESPColors()
+    end
+    
+    return Closest
+end
+
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    if now - config.varibz.sa2thing >= config.varibz.sa2stuff then
+        config.varibz.sa2thing = now
+        if config.SA2_Enabled then
+            cachedTarget = GetClosestPlayer()
+        else
+            cachedTarget = nil
+        end
+    end
+end)
+
+local ExpectedArguments = {
+    FindPartOnRayWithIgnoreList = {
+        ArgCountRequired = 3,
+        Args = { "Instance", "Ray", "table", "boolean", "boolean" }
+    },
+    FindPartOnRayWithWhitelist = {
+        ArgCountRequired = 3,
+        Args = { "Instance", "Ray", "table", "boolean" }
+    },
+    FindPartOnRay = {
+        ArgCountRequired = 2,
+        Args = { "Instance", "Ray", "Instance", "boolean", "boolean" }
+    },
+    Raycast = {
+        ArgCountRequired = 3,
+        Args = { "Instance", "Vector3", "Vector3", "RaycastParams" }
+    }
+}
+
+local function validate_args(Args, RayMethod)
+    local Matches = 0
+    if #Args < RayMethod.ArgCountRequired then return false end
+    for Pos, Argument in next, Args do
+        if typeof(Argument) == RayMethod.Args[Pos] then
+            Matches = Matches + 1
+        end
+    end
+    return Matches >= RayMethod.ArgCountRequired
+end
+
+local function checkcaller() return true end
+
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+    if config.varibz.respawnLock then
+        return OldNamecall(...)
+    end
+    if not config.SA2_Enabled then
+        return OldNamecall(...)
+    end
+    local Method = getnamecallmethod()
+    local Arguments = {...}
+    local self = Arguments[1]
+    local chance = calc_chance(config.SA2_HitChance)
+    
+    if config.SA2_Enabled and self == workspace then
+        if not config.SA2_ThreeSixtyMode and not chance then
+            config.SA2_FovIsTargeted = false
+            return OldNamecall(...)
+        end
+        
+        local HitPart = cachedTarget
+        if not HitPart then
+            config.SA2_FovIsTargeted = false
+            return OldNamecall(...)
+        end
+        
+        config.SA2_FovIsTargeted = true
+        
+        if config.SA2_WallbangEnabled then
+            if Method == "Raycast" then
+                local hitPosition = HitPart.Position
+                local normal = (hitPosition - Arguments[2]).Unit
+                local fakeResult = {
+                    Instance = HitPart,
+                    Position = hitPosition,
+                    Normal = normal,
+                    Material = HitPart.Material
+                }
+                return fakeResult
+            end
+        end
+        
+        if config.SA2_Method == "All" then
+            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
+               Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
+                local A_Origin = Arguments[2].Origin or Arguments[2]
+                local Direction = func.Direction(A_Origin, HitPart.Position)
+                if Method == "Raycast" then
+                    Arguments[3] = Direction
+                else
+                    Arguments[2] = Ray.new(A_Origin, Direction)
+                end
+                return OldNamecall(unpack(Arguments))
+            end
+        end
+        
+        if Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRay) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
+            if validate_args(Arguments, ExpectedArguments.Raycast) then
+                local A_Origin = Arguments[2]
+                Arguments[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Arguments))
+            end
+        end
+    end
+    
+    return OldNamecall(...)
+end))
+
+local OldIndex
+OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
+    if config.varibz.respawnLock then
+        return OldIndex(Self, Index)
+    end
+    
+    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and Self == mouse then
+        if Index == "Target" or Index == "target" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "Hit" or Index == "hit" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart.CFrame
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "UnitRay" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return Ray.new(mouse.Origin, (HitPart.Position - mouse.Origin).Unit)
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        end
+    end
+    
+    return OldIndex(Self, Index)
+end))
+
+local ScreenGui = Instance.new("ScreenGui")
+local CircleFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Name = "FOVSys"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.IgnoreGuiInset = true
+
+CircleFrame.Name = "FOVCircle"
+CircleFrame.Parent = ScreenGui
+CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+CircleFrame.BackgroundColor3 = config.SA2_FovColor
+CircleFrame.BackgroundTransparency = 1
+CircleFrame.BorderSizePixel = 0
+CircleFrame.Visible = false
+
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = CircleFrame
+
+UIStroke.Color = config.SA2_FovColor
+UIStroke.Thickness = 1.5
+UIStroke.Transparency = 1 - config.SA2_FovTransparency
+UIStroke.Parent = CircleFrame
+
+RunService.RenderStepped:Connect(function()
+    local viewportSize = Camera.ViewportSize
+    if viewportSize.X == 0 then return end
+    
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    
+    if config.varibz.respawnLock then
+        CircleFrame.Visible = false
+        return
+    end
+    
+    if config.SA2_Enabled and config.SA2_FovVisible and not config.SA2_ThreeSixtyMode then
+        local currentTarget = GetClosestPlayer()
+        
+        CircleFrame.Visible = true
+        CircleFrame.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+        CircleFrame.Size = UDim2.new(0, config.SA2_FovRadius * 2, 0, config.SA2_FovRadius * 2)
+        
+        local targetColor = currentTarget and config.SA2_FovColourTarget or config.SA2_FovColor
+        UIStroke.Color = targetColor
+        UIStroke.Transparency = 1 - config.SA2_FovTransparency
+    else
+        CircleFrame.Visible = false
+    end
+end)
+
+local CombatGroup = Tabs.Combat:AddLeftGroupbox("Silent Aim HK", "crosshair")
+
+CombatGroup:AddToggle("SilentAimHK", {
+    Text = "Enable Silent Aim HK",
+    Tooltip = "Activates Silent Aim with keybind (R)",
+    Default = false,
+    Callback = function(Value)
+        config.SA2_Enabled = Value
+        if not Value then
+            config.SA2_currentTarget = nil
+        end
+    end,
+})
+
+CombatGroup:AddLabel("Keybind"):AddKeyPicker("SilentAimKeybind", {
+    Default = "R",
+    NoUI = false,
+    Text = "Key to toggle Silent Aim HK",
+    Mode = "Toggle",
+    Callback = function(Value)
+        if Value then
+            Toggles.SilentAimHK:SetValue(not Toggles.SilentAimHK.Value)
+        end
+    end,
+})
+
+CombatGroup:AddSlider("FOVRadius", {
+    Text = "FOV Radius",
+    Default = 120,
+    Min = 10,
+    Max = 500,
+    Rounding = 0,
+    Tooltip = "Field of view radius for target detection",
+    Callback = function(Value)
+        config.SA2_FovRadius = Value
+    end,
+})
+
+CombatGroup:AddToggle("FOVVisible", {
+    Text = "Show FOV",
+    Tooltip = "Shows the FOV circle on screen",
+    Default = true,
+    Callback = function(Value)
+        config.SA2_FovVisible = Value
+    end,
+})
+
+CombatGroup:AddLabel("FOV Color"):AddColorPicker("FOVColor", {
+    Default = Color3.new(0, 0, 0),
+    Title = "FOV Color",
+    Callback = function(Value)
+        config.SA2_FovColor = Value
+    end,
+})
+
+CombatGroup:AddLabel("Target FOV Color"):AddColorPicker("FOVColorTarget", {
+    Default = Color3.new(1, 1, 0),
+    Title = "Target FOV Color",
+    Callback = function(Value)
+        config.SA2_FovColourTarget = Value
+    end,
+})
+
+CombatGroup:AddSlider("FOVTransparency", {
+    Text = "FOV Transparency",
+    Default = 90,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+    Tooltip = "Transparency of the FOV circle",
+    Callback = function(Value)
+        config.SA2_FovTransparency = Value / 100
+    end,
+})
+
+CombatGroup:AddDropdown("TargetPart", {
+    Values = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "Random"},
+    Default = "Head",
+    Text = "Target Part",
+    Tooltip = "Body part to aim at",
+    Callback = function(Value)
+        config.SA2_TargetPart = Value
+    end,
+})
+
+CombatGroup:AddToggle("WallCheck", {
+    Text = "Wall Check",
+    Tooltip = "Checks if target is visible before shooting",
+    Default = false,
+    Callback = function(Value)
+        config.SA2_Wallcheck = Value
+    end,
+})
+
+CombatGroup:AddToggle("Wallbang", {
+    Text = "Wallbang",
+    Tooltip = "Allows shooting through walls",
+    Default = false,
+    Callback = function(Value)
+        config.SA2_WallbangEnabled = Value
+    end,
+})
+
+CombatGroup:AddSlider("HitChance", {
+    Text = "Hit Chance (%)",
+    Default = 100,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+    Tooltip = "Percentage chance to hit the target",
+    Callback = function(Value)
+        config.SA2_HitChance = Value
+    end,
+})
+
+CombatGroup:AddToggle("ThreeSixtyMode", {
+    Text = "360° Mode",
+    Tooltip = "Activates Silent Aim in 360 degrees (no FOV restriction)",
+    Default = false,
+    Callback = function(Value)
+        config.SA2_ThreeSixtyMode = Value
+    end,
+})
+
+CombatGroup:AddDropdown("GetTarget", {
+    Values = {"Closest", "Lowest Health"},
+    Default = "Closest",
+    Text = "Target Selection",
+    Tooltip = "How the target is selected",
+    Callback = function(Value)
+        config.SA2_GetTarget = Value
+    end,
+})
+
+CombatGroup:AddSlider("TargetRange", {
+    Text = "Target Range",
+    Default = 1000,
+    Min = 50,
+    Max = 5000,
+    Rounding = 0,
+    Tooltip = "Maximum distance for target detection",
+    Callback = function(Value)
+        config.SA2_TargetRange = Value
+    end,
+})
+
+CombatGroup:AddDropdown("SAmethod", {
+    Values = {"Raycast", "FindPartOnRayWithIgnoreList", "FindPartOnRayWithWhitelist", "FindPartOnRay", "All", "Mouse.Hit"},
+    Default = "Raycast",
+    Text = "Silent Aim Method",
+    Tooltip = "Method used to redirect shots",
+    Callback = function(Value)
+        config.SA2_Method = Value
+    end,
+})
+
+CombatGroup:AddDropdown("TeamTarget", {
+    Values = {"Enemies", "Teams", "All"},
+    Default = "Enemies",
+    Text = "Team Target",
+    Tooltip = "Selects targets by team",
+    Callback = function(Value)
+        config.SA2_TeamTarget = Value
+    end,
+})
+
+CombatGroup:AddSlider("TArea", {
+    Text = "Target Area",
+    Default = 35,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+    Tooltip = "Target detection area",
+    Callback = function(Value)
+        config.SA2_TArea = Value
+    end,
+})
+
+-- ============================================================
+-- DISCORD TAB
+-- ============================================================
+
+local DiscordGroup = Tabs.Discord:AddLeftGroupbox("Discord", "discord")
+
+DiscordGroup:AddButton({
+    Text = "Copy Discord Invite",
+    Func = function()
+        setclipboard("https://discord.gg/ZCAHf7ck")
+        Library:Notify({
+            Title = "Discord",
+            Description = "Invite link copied to clipboard!",
+            Duration = 3,
+            Style = "success",
+            Sound = "rbxassetid://8011936855"
+        })
+    end,
+    Tooltip = "Copies the Discord invite link to your clipboard",
+})
+
+DiscordGroup:AddLabel("Join our Discord community for updates and support!")
+
+-- ============================================================
+-- UI SETTINGS
+-- ============================================================
+
+local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
+
+MenuGroup:AddToggle("KeybindMenuOpen", {
+    Default = Library.KeybindFrame.Visible,
+    Text = "Open Keybind Menu",
+    Callback = function(value)
+        Library.KeybindFrame.Visible = value
+    end,
+})
+
+MenuGroup:AddToggle("ShowCustomCursor", {
+    Text = "Custom Cursor",
+    Default = true,
+    Callback = function(Value)
+        Library.ShowCustomCursor = Value
+    end,
+})
+
+MenuGroup:AddDropdown("NotificationSide", {
+    Values = { "Left", "Right" },
+    Default = "Right",
+    Text = "Notification Side",
+    Callback = function(Value)
+        Library:SetNotifySide(Value)
+    end,
+})
+
+MenuGroup:AddDropdown("DPIDropdown", {
+    Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+    Default = "100%",
+    Text = "DPI Scale",
+    Callback = function(Value)
+        Value = Value:gsub("%%", "")
+        local DPI = tonumber(Value)
+        Library:SetDPIScale(DPI)
+    end,
+})
+
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu Keybind"):AddKeyPicker("MenuKeybind", { 
+    Default = "RightShift", 
+    NoUI = true, 
+    Text = "Menu keybind" 
+})
+
+MenuGroup:AddButton("Unload", function()
+    Library:Unload()
+end)
+
+Library.ToggleKeybind = Options.MenuKeybind
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
+ThemeManager:SetFolder("Nightfall_SilentAim")
+SaveManager:SetFolder("Nightfall_SilentAim")
+
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+
+SaveManager:LoadAutoloadConfig()
+
+Window:Show()
+
+setclipboard("https://discord.gg/ZCAHf7ck")
+
+Library:Notify({
+    Title = "Nightfall",
+    Description = "Script loaded! Discord invite copied to clipboard.",
+    Duration = 5,
+    Style = "success",
+    Sound = "rbxassetid://8011936855"
+})
